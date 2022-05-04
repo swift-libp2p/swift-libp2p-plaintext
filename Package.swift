@@ -4,7 +4,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "LibP2PPlaintext",
+    name: "swift-libp2p-plaintext",
+    platforms: [
+        .macOS(.v10_15),
+        .iOS(.v13)
+    ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
@@ -13,16 +17,30 @@ let package = Package(
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        // .package(url: /* package url */, from: "1.0.0"),
+       
+        // LibP2P Core Modules
+        .package(url: "https://github.com/swift-libp2p/swift-libp2p", .upToNextMajor(from: "0.1.0")),
+        
+        // MPLEX for testing
+        .package(url: "https://github.com/swift-libp2p/swift-libp2p-mplex", .upToNextMajor(from: "0.1.0")),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "LibP2PPlaintext",
-            dependencies: []),
+            dependencies: [
+                .product(name: "LibP2P", package: "swift-libp2p")
+            ],
+            resources: [
+              .copy("Protobuf/Exchange.proto"),
+            ]
+        ),
         .testTarget(
             name: "LibP2PPlaintextTests",
-            dependencies: ["LibP2PPlaintext"]),
+            dependencies: [
+                "LibP2PPlaintext",
+                .product(name: "LibP2PMPLEX", package: "swift-libp2p-mplex"),
+            ]),
     ]
 )

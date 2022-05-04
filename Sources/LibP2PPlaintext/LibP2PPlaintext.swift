@@ -1,6 +1,38 @@
-public struct LibP2PPlaintext {
-    public private(set) var text = "Hello, World!"
+import LibP2P
 
-    public init() {
+
+public enum PlaintextErrors:Error {
+    case invalidPeerIDExchange
+}
+
+public struct PlaintextUpgrader: SecurityUpgrader {
+    
+    public static let key:String = "/plaintext/2.0.0"
+    let application:Application
+    
+    init(application:Application) {
+        self.application = application
+        self.application.logger.trace("PlaintextV2: Initializing")
+    }
+    
+    public func upgradeConnection(_ conn: Connection, securedPromise: EventLoopPromise<Connection.SecuredResult>) -> EventLoopFuture<Void> {
+        // Given a ChannelHandlerContext Configure and Install our HandshakeHandler onto the pipeline
+        let handlers:[ChannelHandler] = [
+            InboundPlaintextV2DecryptHandler(
+                peerID: conn.localPeer,
+                mode: conn.mode,
+                logger: conn.logger,
+                secured: securedPromise
+            ),
+            OutboundPlaintextV2EncryptHandler(
+                mode: conn.mode,
+                logger: conn.logger
+            )
+        ]
+        return conn.channel.pipeline.addHandlers( handlers )
+    }
+    
+    public func printSelf() {
+        application.logger.notice("Hi I'm the PlaintextV2 security protocol")
     }
 }
