@@ -15,7 +15,7 @@ public struct PlaintextUpgrader: SecurityUpgrader {
         self.application.logger.trace("PlaintextV2: Initializing")
     }
     
-    public func upgradeConnection(_ conn: Connection, securedPromise: EventLoopPromise<Connection.SecuredResult>) -> EventLoopFuture<Void> {
+    public func upgradeConnection(_ conn: Connection, position:ChannelPipeline.Position, securedPromise: EventLoopPromise<Connection.SecuredResult>) -> EventLoopFuture<Void> {
         // Given a ChannelHandlerContext Configure and Install our HandshakeHandler onto the pipeline
         let handlers:[ChannelHandler] = [
             InboundPlaintextV2DecryptHandler(
@@ -29,7 +29,7 @@ public struct PlaintextUpgrader: SecurityUpgrader {
                 logger: conn.logger
             )
         ]
-        return conn.channel.pipeline.addHandlers( handlers )
+        return conn.channel.pipeline.addHandlers( handlers, position: position )
     }
     
     public func printSelf() {
