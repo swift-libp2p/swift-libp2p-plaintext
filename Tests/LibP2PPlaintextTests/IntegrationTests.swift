@@ -16,7 +16,7 @@ class IntegrationTests: XCTestCase {
     /// Testing Internal Swift Interoperability
     /// ***************************************
     func testInternalInterop() throws {
-        //if String(cString: getenv("SkipIntegrationTests")) == "true" { print("Skipping Integration Test"); return }
+        if String(cString: getenv("SkipIntegrationTests")) == "true" { print("Skipping Integration Test"); return }
         let host = try makeLocalEchoHost(port: 10000)
         let client = try makeLocalClient(port: 10001)
         
