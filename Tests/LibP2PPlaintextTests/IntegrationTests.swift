@@ -48,6 +48,43 @@ class IntegrationTests: XCTestCase {
         print("Goodbye 👋")
     }
     
+    /// **************************************************
+    /// Testing Internal Swift Interoperability with External Host on same LAN
+    /// **************************************************
+    func testExternalInterop() throws {
+        if String(cString: getenv("SkipIntegrationTests")) == "true" { print("Skipping Integration Test"); return }
+        let client = try makeLocalClient(port: 10000)
+        
+        // Change this to point to your host application
+        let hostToDial = try Multiaddr("/ip4/192.168.1.1/tcp/10000")
+        
+        try client.start()
+        
+        /// Create an expectation
+        let expectation = expectation(description: "Wait for response")
+        
+        /// Fire off an echo request
+        client.newRequest(to: hostToDial, forProtocol: "/echo/1.0.0", withRequest: "Hello Swift LibP2P".data(using: .utf8)!, withHandlers: .handlers([.newLineDelimited])).whenComplete { res in
+            switch res {
+            case .success(let response):
+                XCTAssertEqual(response, "Hello Swift LibP2P".data(using: .utf8)!)
+                print(String(data: response, encoding: .utf8) ?? "NIL")
+            case .failure(let error):
+                XCTFail("\(error)")
+            }
+            expectation.fulfill()
+        }
+        
+        /// Wait for the response to come in
+        waitForExpectations(timeout: 5)
+        
+        sleep(1)
+        
+        client.shutdown()
+        
+        print("Goodbye 👋")
+    }
+    
 
     /// **************************************
     ///     Testing Go Interoperability
