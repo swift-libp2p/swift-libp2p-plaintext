@@ -182,7 +182,7 @@ class IntegrationTests: XCTestCase {
         lib.logger.logLevel = .debug
         
         lib.routes.group("echo", handlers: [.newLineDelimited]) { echo in
-            echo.on("1.0.0") { req -> ResponseType<ByteBuffer> in
+            echo.on("1.0.0") { req -> Response<ByteBuffer> in
                 switch req.event {
                 case .ready: return .stayOpen
                 case .data(let data): return .respondThenClose(data)
