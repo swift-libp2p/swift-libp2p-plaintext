@@ -24,10 +24,6 @@ class IntegrationTests: XCTestCase {
     /// Testing Internal Swift Interoperability
     /// ***************************************
     func testInternalInterop() throws {
-        if String(cString: getenv("SkipIntegrationTests")) == "true" {
-            print("Skipping Integration Test")
-            return
-        }
         let host = try makeLocalEchoHost(port: 10000)
         let client = try makeLocalClient(port: 10001)
 
@@ -68,7 +64,7 @@ class IntegrationTests: XCTestCase {
     /// Testing Internal Swift Interoperability with External Host on same LAN
     /// **************************************************
     func testExternalInterop() throws {
-        if String(cString: getenv("SkipIntegrationTests")) == "true" {
+        guard let b = ProcessInfo.processInfo.environment["PerformIntegrationTests"], b == "true" else {
             print("Skipping Integration Test")
             return
         }
@@ -125,7 +121,7 @@ class IntegrationTests: XCTestCase {
     /// Now run this test...
     /// - Note: Works with RSA and Ed25519 (Secp256k1 failes)
     func testGoHostInterop() throws {
-        if String(cString: getenv("SkipIntegrationTests")) == "true" {
+        guard let b = ProcessInfo.processInfo.environment["PerformIntegrationTests"], b == "true" else {
             print("Skipping Integration Test")
             return
         }
@@ -175,7 +171,7 @@ class IntegrationTests: XCTestCase {
     /// - Note: I think there is a compatibility issue between JS and GO plaintext at the moment. Our Plaintext implementation works with GO (not JS)
     /// - Note: The difference has to do with what format the two implemetations expect the public key in. (Go expects a Marshaled PubKey, while JS expects an Exchange Protobuf)
     func testJSInterop() throws {
-        if String(cString: getenv("SkipIntegrationTests")) == "true" {
+        guard let b = ProcessInfo.processInfo.environment["PerformIntegrationTests"], b == "true" else {
             print("Skipping Integration Test")
             return
         }
