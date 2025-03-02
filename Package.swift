@@ -19,20 +19,21 @@ let package = Package(
     name: "swift-libp2p-plaintext",
     platforms: [
         .macOS(.v10_15),
-        .iOS(.v13)
+        .iOS(.v13),
     ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
             name: "LibP2PPlaintext",
-            targets: ["LibP2PPlaintext"]),
+            targets: ["LibP2PPlaintext"]
+        )
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-       
+
         // LibP2P Core Modules
         .package(url: "https://github.com/swift-libp2p/swift-libp2p", .upToNextMajor(from: "0.1.0")),
-        
+
         // MPLEX for testing
         .package(url: "https://github.com/swift-libp2p/swift-libp2p-mplex", .upToNextMajor(from: "0.1.0")),
     ],
@@ -45,7 +46,7 @@ let package = Package(
                 .product(name: "LibP2P", package: "swift-libp2p")
             ],
             resources: [
-              .copy("Protobuf/Exchange.proto"),
+                .copy("Protobuf/Exchange.proto")
             ]
         ),
         .testTarget(
@@ -53,6 +54,7 @@ let package = Package(
             dependencies: [
                 "LibP2PPlaintext",
                 .product(name: "LibP2PMPLEX", package: "swift-libp2p-mplex"),
-            ]),
+            ]
+        ),
     ]
 )
