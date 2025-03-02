@@ -18,7 +18,7 @@ extension Application.SecurityUpgraders.Provider {
     public static var plaintextV2: Self {
         .init {
             $0.security.use { app in
-                return PlaintextUpgrader(application: app)
+                PlaintextUpgrader(application: app)
             }
         }
     }
