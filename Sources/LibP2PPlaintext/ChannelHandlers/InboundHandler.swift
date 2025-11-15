@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 import LibP2P
+import NIOConcurrencyHelpers
 
 /// Plaintext V2
 ///
@@ -22,36 +23,57 @@ import LibP2P
 /// Misc Notes:
 /// PlaintextV2 DOES NOT Require uVarInt length based frame encoding/decoding
 /// The handshake / peerID exchange is uVarInt prefixed, but after that, it should simply forward data along.
-internal final class InboundPlaintextV2DecryptHandler: ChannelInboundHandler {
+internal final class InboundPlaintextV2DecryptHandler: ChannelInboundHandler, Sendable {
     public typealias InboundIn = ByteBuffer
     public typealias InboundOut = ByteBuffer
     public typealias OutboundOut = ByteBuffer
 
-    private enum State {
+    private enum State: Sendable {
         case awaitingPeerID
         case verified
     }
 
-    private var channelSecuredCallback: EventLoopPromise<Connection.SecuredResult>
+    private let channelSecuredCallback: EventLoopPromise<Connection.SecuredResult>
 
-    private var state: State
+    private var state: State {
+        get { _state.withLockedValue { $0 } }
+        set { _state.withLockedValue { $0 = newValue } }
+    }
+    private let _state: NIOLockedValueBox<State>
 
-    private var logger: Logger
+    private let logger: Logger
     private let localPeerInfo: PeerID
-    private var remotePeerInfo: PeerID? = nil
+
+    private var remotePeerInfo: PeerID? {
+        get { _remotePeerInfo.withLockedValue { $0 } }
+        set { _remotePeerInfo.withLockedValue { $0 = newValue } }
+    }
+    private let _remotePeerInfo: NIOLockedValueBox<PeerID?>
+    private let expectedRemotePeerID: PeerID?
+
+    private var buffer: [UInt8] {
+        get { _buffer.withLockedValue { $0 } }
+        set { _buffer.withLockedValue { $0 = newValue } }
+    }
+    private let _buffer: NIOLockedValueBox<[UInt8]>
 
     public init(
         peerID: PeerID,
         mode: LibP2PCore.Mode,
         logger: Logger,
-        secured: EventLoopPromise<Connection.SecuredResult>
+        secured: EventLoopPromise<Connection.SecuredResult>,
+        expectedRemotePeerID: PeerID?
     ) {
-        self.localPeerInfo = peerID
-        self.state = .awaitingPeerID
-        self.logger = logger
-        self.channelSecuredCallback = secured
+        var logger = logger
+        logger[metadataKey: "PlaintextV2"] = .string("inbound.\(mode.rawValue)")
 
-        self.logger[metadataKey: "PlaintextV2"] = .string("inbound.\(mode.rawValue)")
+        self.logger = logger
+        self.localPeerInfo = peerID
+        self._remotePeerInfo = .init(nil)
+        self.expectedRemotePeerID = expectedRemotePeerID
+        self._state = .init(.awaitingPeerID)
+        self.channelSecuredCallback = secured
+        self._buffer = .init([])
     }
 
     /// We take this opportunity to send our PeerExchange protobuf
@@ -89,7 +111,6 @@ internal final class InboundPlaintextV2DecryptHandler: ChannelInboundHandler {
         }
     }
 
-    private var buffer: [UInt8] = []
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         switch state {
         case .awaitingPeerID:
@@ -118,7 +139,7 @@ internal final class InboundPlaintextV2DecryptHandler: ChannelInboundHandler {
                 logger.trace("\(peerInfo.asString(base: .base16))")
                 logger.trace("Bytes: \(peerInfo.count)")
 
-                let exchangeMessage = try Exchange(contiguousBytes: peerInfo)
+                let exchangeMessage = try Exchange(serializedBytes: peerInfo)
                 if let pid = try? PeerID(marshaledPeerID: Data(peerInfo)) {
                     self.logger.trace("Incoming Message straight to PeerID (no exchange proto) => \(pid.b58String)")
                     remotePeerInfo = pid
@@ -126,11 +147,20 @@ internal final class InboundPlaintextV2DecryptHandler: ChannelInboundHandler {
                     remotePeerInfo = try PeerID(marshaledPublicKey: exchangeMessage.pubkey.data)  //.serializedData())
                 }
 
-                guard remotePeerInfo!.id == exchangeMessage.id.bytes else {
+                guard remotePeerInfo!.id == exchangeMessage.id.byteArray else {
                     logger.error("Remote Peer ID isn't derived from their PublicKey. Closing connection.")
                     //self.channelSecuredCallback.succeed((false, nil))
                     self.channelSecuredCallback.fail(PlaintextErrors.invalidPeerIDExchange)
                     return context.close(mode: .all, promise: nil)
+                }
+                if let expectedRemotePeerID {
+                    guard expectedRemotePeerID == remotePeerInfo else {
+                        logger.error("Remote Peer ID doesn't match our expected Peer ID. Closing connection.")
+                        self.channelSecuredCallback.fail(PlaintextErrors.unexpectedRemotePeer)
+                        return context.close(mode: .all, promise: nil)
+                    }
+                } else {
+                    logger.warning("Skipping Remote PeerID check as Expected PeerID was not provided")
                 }
                 logger.trace("Peer Info from Remote Peer seems legit, let's proceed")
                 logger.trace("PeerID: \(remotePeerInfo!.b58String)")

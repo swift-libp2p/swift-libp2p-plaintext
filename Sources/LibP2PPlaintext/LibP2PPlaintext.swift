@@ -16,6 +16,7 @@ import LibP2P
 
 public enum PlaintextErrors: Error {
     case invalidPeerIDExchange
+    case unexpectedRemotePeer
 }
 
 public struct PlaintextUpgrader: SecurityUpgrader {
@@ -34,12 +35,13 @@ public struct PlaintextUpgrader: SecurityUpgrader {
         securedPromise: EventLoopPromise<Connection.SecuredResult>
     ) -> EventLoopFuture<Void> {
         // Given a ChannelHandlerContext Configure and Install our HandshakeHandler onto the pipeline
-        let handlers: [ChannelHandler] = [
+        let handlers: [ChannelHandler & Sendable] = [
             InboundPlaintextV2DecryptHandler(
                 peerID: conn.localPeer,
                 mode: conn.mode,
                 logger: conn.logger,
-                secured: securedPromise
+                secured: securedPromise,
+                expectedRemotePeerID: conn.expectedRemotePeer
             ),
             OutboundPlaintextV2EncryptHandler(
                 mode: conn.mode,
