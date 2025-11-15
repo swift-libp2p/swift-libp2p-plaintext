@@ -34,7 +34,7 @@ let package = Package(
     ...
     dependencies: [
         ...
-        .package(url: "https://github.com/swift-libp2p/swift-libp2p-plaintext.git", .upToNextMajor(from: "0.1.0"))
+        .package(url: "https://github.com/swift-libp2p/swift-libp2p-plaintext.git", .upToNextMinor(from: "0.2.0"))
     ],
         ...
         .target(
@@ -55,7 +55,7 @@ let package = Package(
 import LibP2PPlaintext
 
 /// Tell libp2p that it can use plaintext...
-app.security.use( .plaintext )
+app.security.use( .plaintextV2 )
 
 ```
 
