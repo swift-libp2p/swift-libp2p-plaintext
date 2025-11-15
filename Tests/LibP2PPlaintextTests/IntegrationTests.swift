@@ -14,93 +14,69 @@
 
 import LibP2P
 import LibP2PMPLEX
-import XCTest
+import Testing
 
 @testable import LibP2PPlaintext
 
-class IntegrationTests: XCTestCase {
-
+@Suite("Active Tests", .serialized)
+struct InternalIntegrationTests {
     /// ***************************************
     /// Testing Internal Swift Interoperability
     /// ***************************************
-    func testInternalInterop() throws {
+    @Test func testInternalInterop() async throws {
         let host = try makeLocalEchoHost(port: 10000)
         let client = try makeLocalClient(port: 10001)
 
-        try host.start()
-        try client.start()
-
-        /// Create an expectation
-        let expectation = expectation(description: "Wait for response")
+        try await host.startup()
+        try await client.startup()
 
         /// Fire off an echo request
-        client.newRequest(
-            to: host.listenAddresses.first!,
+        let response = try await client.newRequest(
+            to: host.listenAddresses.first!.encapsulate(proto: .p2p, address: host.peerID.b58String),
             forProtocol: "/echo/1.0.0",
             withRequest: "Hello Swift LibP2P".data(using: .utf8)!,
             withHandlers: .handlers([.newLineDelimited])
-        ).whenComplete { res in
-            switch res {
-            case .success(let response):
-                XCTAssertEqual(response, "Hello Swift LibP2P".data(using: .utf8)!)
-            case .failure(let error):
-                XCTFail("\(error)")
-            }
-            expectation.fulfill()
-        }
+        ).get()
 
-        /// Wait for the response to come in
-        waitForExpectations(timeout: 3)
+        #expect(response == "Hello Swift LibP2P".data(using: .utf8)!)
 
-        sleep(1)
+        try await Task.sleep(for: .seconds(1))
 
-        host.shutdown()
-        client.shutdown()
+        try await host.asyncShutdown()
+        try await client.asyncShutdown()
 
         print("Goodbye 👋")
     }
+}
+
+@Suite("External Integration Tests", .externalIntegrationTestsEnabled, .serialized)
+struct ExternalIntegrationTests {
 
     /// **************************************************
     /// Testing Internal Swift Interoperability with External Host on same LAN
     /// **************************************************
-    func testExternalInterop() throws {
-        guard let b = ProcessInfo.processInfo.environment["PerformIntegrationTests"], b == "true" else {
-            print("Skipping Integration Test")
-            return
-        }
+    @Test func testExternalInterop() async throws {
         let client = try makeLocalClient(port: 10000)
 
         // Change this to point to your host application
         let hostToDial = try Multiaddr("/ip4/192.168.1.1/tcp/10000")
 
-        try client.start()
-
-        /// Create an expectation
-        let expectation = expectation(description: "Wait for response")
+        try await client.startup()
 
         /// Fire off an echo request
-        client.newRequest(
+        let response = try await client.newRequest(
             to: hostToDial,
             forProtocol: "/echo/1.0.0",
             withRequest: "Hello Swift LibP2P".data(using: .utf8)!,
             withHandlers: .handlers([.newLineDelimited])
-        ).whenComplete { res in
-            switch res {
-            case .success(let response):
-                XCTAssertEqual(response, "Hello Swift LibP2P".data(using: .utf8)!)
-                print(String(data: response, encoding: .utf8) ?? "NIL")
-            case .failure(let error):
-                XCTFail("\(error)")
-            }
-            expectation.fulfill()
-        }
+        ).get()
 
-        /// Wait for the response to come in
-        waitForExpectations(timeout: 5)
+        #expect(response == "Hello Swift LibP2P".data(using: .utf8)!)
+        print(String(data: response, encoding: .utf8) ?? "NIL")
 
-        sleep(1)
+        try await Task.sleep(for: .seconds(1))
 
-        client.shutdown()
+        try await client.asyncShutdown()
 
         print("Goodbye 👋")
     }
@@ -120,31 +96,27 @@ class IntegrationTests: XCTestCase {
     /// ```
     /// Now run this test...
     /// - Note: Works with RSA and Ed25519 (Secp256k1 failes)
-    func testGoHostInterop() throws {
-        guard let b = ProcessInfo.processInfo.environment["PerformIntegrationTests"], b == "true" else {
-            print("Skipping Integration Test")
-            return
-        }
+    @Test func testGoHostInterop() async throws {
         let client = try makeLocalClient(port: 10001, peerID: PeerID(.Ed25519))
 
-        try client.start()
+        try await client.startup()
 
         /// Fire off an echo request to the go echo server on port 10000
-        let response = try client.newRequest(
+        let response = try await client.newRequest(
             to: Multiaddr("/ip4/127.0.0.1/tcp/10000"),
             forProtocol: "/echo/1.0.0",
             withRequest: "Hello Swift LibP2P".data(using: .utf8)!,
             withHandlers: .handlers([.newLineDelimited])
-        ).wait()
+        ).get()
 
         print(String(data: response, encoding: .utf8) ?? "NIL")
-        XCTAssertEqual(response, "Hello Swift LibP2P".data(using: .utf8)!)
+        #expect(response == "Hello Swift LibP2P".data(using: .utf8)!)
 
-        sleep(1)
+        try await Task.sleep(for: .seconds(1))
 
         client.peers.dumpAll()
 
-        client.shutdown()
+        try await client.asyncShutdown()
 
         print("Goodbye 👋")
     }
@@ -170,11 +142,7 @@ class IntegrationTests: XCTestCase {
     /// Now run this test...
     /// - Note: I think there is a compatibility issue between JS and GO plaintext at the moment. Our Plaintext implementation works with GO (not JS)
     /// - Note: The difference has to do with what format the two implemetations expect the public key in. (Go expects a Marshaled PubKey, while JS expects an Exchange Protobuf)
-    func testJSInterop() throws {
-        guard let b = ProcessInfo.processInfo.environment["PerformIntegrationTests"], b == "true" else {
-            print("Skipping Integration Test")
-            return
-        }
+    @Test func testJSInterop() async throws {
         let str = """
             {
               "id": "Qma3GsJmB47xYuyahPZPSadh1avvxfyYQwk8R3UnFrQ6aP",
@@ -186,61 +154,79 @@ class IntegrationTests: XCTestCase {
 
         let client = try makeLocalClient(port: 10001, peerID: peerID)
 
-        try client.start()
+        try await client.startup()
 
         /// Fire off an echo request to the go echo server on port 10000
-        let response = try client.newRequest(
+        let response = try await client.newRequest(
             to: Multiaddr("/ip4/127.0.0.1/tcp/10333"),
             forProtocol: "/echo/1.0.0",
             withRequest: "Hello Swift LibP2P".data(using: .utf8)!,
             withHandlers: .handlers([.newLineDelimited])
-        ).wait()
+        ).get()
 
         print(String(data: response, encoding: .utf8) ?? "NIL")
-        XCTAssertEqual(response, "Hello Swift LibP2P".data(using: .utf8)!)
+        #expect(response == "Hello Swift LibP2P".data(using: .utf8)!)
 
-        sleep(1)
+        try await Task.sleep(for: .seconds(1))
 
         client.peers.dumpAll()
 
-        client.shutdown()
+        try await client.asyncShutdown()
 
         print("Goodbye 👋")
     }
+}
 
-    private func makeLocalEchoHost(port: Int) throws -> Application {
-        let lib = try Application(.testing, peerID: PeerID(.Ed25519))
-        lib.security.use(.plaintextV2)
-        lib.muxers.use(.mplex)
-        lib.servers.use(.tcp(host: "127.0.0.1", port: port))
+private func makeLocalEchoHost(port: Int) throws -> Application {
+    let lib = try Application(.testing, peerID: PeerID(.Ed25519))
+    lib.security.use(.plaintextV2)
+    lib.muxers.use(.mplex)
+    lib.servers.use(.tcp(host: "127.0.0.1", port: port))
 
-        lib.logger.logLevel = .debug
+    lib.logger.logLevel = .debug
 
-        lib.routes.group("echo", handlers: [.newLineDelimited]) { echo in
-            echo.on("1.0.0") { req -> Response<ByteBuffer> in
-                switch req.event {
-                case .ready: return .stayOpen
-                case .data(let data): return .respondThenClose(data)
-                case .closed: return .close
-                case .error(let error):
-                    req.logger.error("\(error)")
-                    return .close
-                }
+    lib.routes.group("echo", handlers: [.newLineDelimited]) { echo in
+        echo.on("1.0.0") { req -> Response<ByteBuffer> in
+            switch req.event {
+            case .ready: return .stayOpen
+            case .data(let data): return .respondThenClose(data)
+            case .closed: return .close
+            case .error(let error):
+                req.logger.error("\(error)")
+                return .close
             }
         }
-
-        return lib
     }
 
-    private func makeLocalClient(port: Int, peerID: PeerID? = nil) throws -> Application {
-        let lib = try Application(.testing, peerID: peerID ?? PeerID(.Ed25519))
-        lib.security.use(.plaintextV2)
-        lib.muxers.use(.mplex)
-        lib.servers.use(.tcp(host: "127.0.0.1", port: port))
+    return lib
+}
 
-        lib.logger.logLevel = .trace
+private func makeLocalClient(port: Int, peerID: PeerID? = nil) throws -> Application {
+    let lib = try Application(.testing, peerID: peerID ?? PeerID(.Ed25519))
+    lib.security.use(.plaintextV2)
+    lib.muxers.use(.mplex)
+    lib.servers.use(.tcp(host: "127.0.0.1", port: port))
 
-        return lib
+    lib.logger.logLevel = .trace
+
+    return lib
+}
+
+struct TestHelper {
+    static var integrationTestsEnabled: Bool {
+        if let b = ProcessInfo.processInfo.environment["PerformIntegrationTests"], b == "true" {
+            return true
+        }
+        return false
     }
+}
 
+extension Trait where Self == ConditionTrait {
+    /// This test is only available when the `PerformIntegrationTests` environment variable is set to `true`
+    public static var externalIntegrationTestsEnabled: Self {
+        enabled(
+            if: TestHelper.integrationTestsEnabled,
+            "This test is only available when the `PerformIntegrationTests` environment variable is set to `true`"
+        )
+    }
 }

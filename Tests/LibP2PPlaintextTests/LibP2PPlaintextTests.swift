@@ -13,64 +13,73 @@
 //===----------------------------------------------------------------------===//
 
 import LibP2P
-import XCTest
+import Testing
 
 @testable import LibP2PPlaintext
 
-final class LibP2PPlaintextTests: XCTestCase {
+@Suite("Libp2p Plaintext Tests")
+struct LibP2PPlaintextTests {
 
     /// Our Marshaled PeerID can be decoded as an Exchange Protobuf or directly into a PeerID, same for GO
     /// JS has some extra bytes in their Exchange Protobuf that throws off the PeerID(marshaled: ) initialization.
-    func testExchangeProtobufDecodingSwift() throws {
+    @Test func testExchangeProtobufDecodingSwift() throws {
         let hexMsg =
             "0a22122093b3c869bb577e6845ccb6fd26f4b5ad345eb7d1cda27f1bcf7f9ed92e19c36e12ab02080012a60230820122300d06092a864886f70d01010105000382010f003082010a0282010100bd2a4fb3cf4784db8f15ef53e77ba83da234fbc80e3fc6c8212a1bea8310b5524db4495336d509c52c0af5e21fee94ed6618e3fd4d5c88d586f181701d95611bfeaf0d97c22585ce7a7f20be10556f4d849544574d4b7817f2874da9a3f2df3469c11a435f1b23435d0b2379d5273262d9748f7acead319c2c2dc7a1d654f7d0158728e45770bc4582af079a31cc4d6b2ac2575a97d27d3c49fc7ad5aa36bb31a1f54ff007333ebb9f63eb51d5a6097b9b59b953663ae7ba9a664f7fc8d6e32ff4ea31c20fc818e8235c309a780c128de10c90207b7921629b5c64a0e29bac56d4f02ad4b1e58a9546554e808732a45c5edb0b4ff554537b8623cbd4670103c70203010001"
 
         let data = [UInt8](hex: hexMsg)
 
-        let exchangeMsg = try Exchange(contiguousBytes: data)
+        let exchangeMsg = try Exchange(serializedBytes: data)
 
-        print(exchangeMsg)
+        #expect(exchangeMsg.hasPubkey)
+        #expect(exchangeMsg.pubkey.type == .rsa)
 
         let peerID = try PeerID(marshaledPeerID: Data(data))
 
-        print(peerID)
+        #expect(peerID.type == .isPublic)
+        #expect(peerID.keyPair?.keyType == .rsa)
     }
 
     /// The Pubkey exchange that Go sends us is a Marshaled PeerID
     /// - Note: This succeeds (shows that GO's marshaled public key can be decoded into an Exchange Protobuf or directly into a PeerID)
-    func testExchangeProtobufDecodingGO() throws {
+    @Test func testExchangeProtobufDecodingGO() throws {
         let hexMsg =
             "0a22122061e066c40af81bf4f6f8712f4bf444b5fdef44588859297b04465ce0f6c748b912ab02080012a60230820122300d06092a864886f70d01010105000382010f003082010a0282010100b14f3a4c567128172768c95130582d0f20a29f65311a4b7ab26ab2eda870e37b7fd2e3032981f9b874ab1ffb89c6257b5cbb83ad7fcfc66b7eda26e664ffee9ef4107742807ecdd983d8486460aaca130eb1818d070d241f400ed6b21e1f88b88ce28eb1e75d22d8b0d656bd5b5abf0873f0864bbb5080af894cbc022322ef56a6479f65fecf1036debca6fa9b98d4e820e49e3cf0294027754b934d1112bc45bca6be5c95f7903ed1fd58a839b3484aaa8f3ac3047241d3b707bcb5df3da6b20f599d97280fa8e8c34f524490d0453077eb501fa56c12637ef5cd122c0c86f4a2896f0247760ba02681afe8ee3ad3cc0b180a67d97f40a6f0aba46f2d2b2da70203010001"
 
         let data = [UInt8](hex: hexMsg)
 
-        let exchangeMsg = try Exchange(contiguousBytes: data)
+        let exchangeMsg = try Exchange(serializedBytes: data)
 
-        print(exchangeMsg)
+        #expect(exchangeMsg.hasPubkey)
+        #expect(exchangeMsg.pubkey.type == .rsa)
 
         let peerID = try PeerID(marshaledPeerID: Data(data))
 
-        print(peerID)
+        #expect(peerID.type == .isPublic)
+        #expect(peerID.keyPair?.keyType == .rsa)
+        #expect(peerID.b58String == "QmUviibYYK9PuVJqxqiTuSuZPgUPur5Ncy1YEvKmj3osr8")
     }
 
     /// The Pubkey that JS sends us is an Exchange Protobuf
     /// - Note: This fails (shows that JS's marshaled public key can be decoded into an Exchange Protobuf, but not directly into a PeerID)
-    func testExchangeProtobufDecodingJS() throws {
+    @Test func testExchangeProtobufDecodingJS() throws {
         let hexMsg =
             "0a221220d7a3092350d15eb2885ec0946a7ab5d55f23b743783df66a36a691b2df7704be12b002080012ab02080012a60230820122300d06092a864886f70d01010105000382010f003082010a0282010100cb65970671b7b8bab30156570780dd1fa41ca663ec5caf5e1ec2f6a61bbd1064e0c9d61f6c963944c59edbc8b8aa441dd28c66dfa59d45c1ece7c0dc56b56a631e44234d55dea0ce041200d234efc283b28d954d0426f80f2577843f2700657f6a0126d527a104090e34551ffbf92b92aac74bd61ae61b5a61a488eef83eb880bc96a70f561002dfccca47e48fcabdd6035b737883acce0f6999369e72d601de5c83475b3305e7de8eef6ffa731c32897575789d34d24d4d567532acf8d7b6a59d54b464e485352c5a684285d95395f584a8f56b6aadfe565f1f978eac5feb6a61dcc21ad8630d6dc5ff091d758efdb6cd9f27a64c702fbad6694cdaec5804df0203010001"
 
         let data = [UInt8](hex: hexMsg)
 
-        let exchangeMsg = try Exchange(contiguousBytes: data)
+        let exchangeMsg = try Exchange(serializedBytes: data)
 
-        print(exchangeMsg)
+        #expect(exchangeMsg.hasPubkey)
+        #expect(exchangeMsg.pubkey.type == .rsa)
 
-        /// This fails...
-        //let peerID = try PeerID(marshaledPeerID: Data(data))
-        //print(peerID)
+        /// JS sends a marshalled PublicKey instead of a marshalled PeerID
+        let peerID = try PeerID(marshaledPublicKey: exchangeMsg.pubkey.data)
+        #expect(peerID.type == .isPublic)
+        #expect(peerID.keyPair?.keyType == .rsa)
+        #expect(peerID.b58String == "QmcrQZ6RJdpYuGvZqD5QEHAv6qX4BrQLJLQPQUrTrzdcgm")
     }
 
-    func testExchangeProtobufEncodingJSEchoExampleDialersKey() throws {
+    @Test func testExchangeProtobufEncodingJSEchoExampleDialersKey() throws {
         let expectedHexDialer =
             "0a221220add8ac59b1fe19f20dfaa2228c239e3c131d73e0a7848ac869d5eb959a27ec6c12b002080012ab02080012a60230820122300d06092a864886f70d01010105000382010f003082010a02820101009a3520ce8cfcfa4fc1d9b1fecb0e9c6241188dd8e8dec881d44b4e69f1058eaf710550216c0b7d51e26a22844e4737e17135a954cb215953fff28dfd6976794c26aad507225231afb2db2e31d85b9ca680803bded3c7e896cf0959d945c451733563cd6684f6de597cbec0fdb11254e02044744ec9ffb61a00d120f6bbdc09b95bccedd07b701707626a95e891fe29609e7514ee9ba3b506cb2a3ffe0b6e6dbeae4adb678fa8551a14d8344ba0584aab0a8bb7296b6ee8f85ce2375f290c5d5e7eb905f3d49cee6cd381f65b1ce8af9e442fb0f218610ee14c833919e2aa260a7c77ba13baeca68809df32aaa05ae8f27ff9f04ce57938863c91e346f071fe350203010001"
 
@@ -103,12 +112,12 @@ final class LibP2PPlaintextTests: XCTestCase {
         exch.pubkey = pubkey
 
         let encoded = try exch.serializedData()
-        print(encoded.asString(base: .base16))
+        //print(encoded.asString(base: .base16))
 
-        XCTAssertEqual(encoded.asString(base: .base16), expectedHexDialer)
+        #expect(encoded.asString(base: .base16) == expectedHexDialer)
     }
 
-    func testExchangeProtobufEncodingJSEchoExampleListenersKey() throws {
+    @Test func testExchangeProtobufEncodingJSEchoExampleListenersKey() throws {
         let expectedHexListener =
             "0a221220d7a3092350d15eb2885ec0946a7ab5d55f23b743783df66a36a691b2df7704be12b002080012ab02080012a60230820122300d06092a864886f70d01010105000382010f003082010a0282010100cb65970671b7b8bab30156570780dd1fa41ca663ec5caf5e1ec2f6a61bbd1064e0c9d61f6c963944c59edbc8b8aa441dd28c66dfa59d45c1ece7c0dc56b56a631e44234d55dea0ce041200d234efc283b28d954d0426f80f2577843f2700657f6a0126d527a104090e34551ffbf92b92aac74bd61ae61b5a61a488eef83eb880bc96a70f561002dfccca47e48fcabdd6035b737883acce0f6999369e72d601de5c83475b3305e7de8eef6ffa731c32897575789d34d24d4d567532acf8d7b6a59d54b464e485352c5a684285d95395f584a8f56b6aadfe565f1f978eac5feb6a61dcc21ad8630d6dc5ff091d758efdb6cd9f27a64c702fbad6694cdaec5804df0203010001"
 
@@ -141,8 +150,8 @@ final class LibP2PPlaintextTests: XCTestCase {
         exch.pubkey = pubkey
 
         let encoded = try exch.serializedData()
-        print(encoded.asString(base: .base16))
+        //print(encoded.asString(base: .base16))
 
-        XCTAssertEqual(encoded.asString(base: .base16), expectedHexListener)
+        #expect(encoded.asString(base: .base16) == expectedHexListener)
     }
 }
