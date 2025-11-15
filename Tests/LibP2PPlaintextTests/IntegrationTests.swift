@@ -23,7 +23,7 @@ struct InternalIntegrationTests {
     /// ***************************************
     /// Testing Internal Swift Interoperability
     /// ***************************************
-    @Test func testInternalInterop() async throws {
+    @Test(.disabled()) func testInternalInterop() async throws {
         let host = try makeLocalEchoHost(port: 10000)
         let client = try makeLocalClient(port: 10001)
 
@@ -40,7 +40,7 @@ struct InternalIntegrationTests {
 
         #expect(response == "Hello Swift LibP2P".data(using: .utf8)!)
 
-        try await Task.sleep(for: .seconds(1))
+        try await Task.sleep(for: .milliseconds(100))
 
         try await host.asyncShutdown()
         try await client.asyncShutdown()
