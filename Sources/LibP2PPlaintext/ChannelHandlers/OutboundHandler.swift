@@ -15,16 +15,17 @@
 import LibP2P
 
 // Version 2.0.0 (PeerID Exchange)
-internal final class OutboundPlaintextV2EncryptHandler: ChannelOutboundHandler {
+internal final class OutboundPlaintextV2EncryptHandler: ChannelOutboundHandler, Sendable {
     public typealias OutboundIn = ByteBuffer
     public typealias OutboundOut = ByteBuffer
 
-    private var logger: Logger
+    private let logger: Logger
 
     public init(mode: LibP2PCore.Mode, logger: Logger) {
-        self.logger = logger
+        var logger = logger
+        logger[metadataKey: "PlaintextV2"] = .string("outbound.\(mode.rawValue)")
 
-        self.logger[metadataKey: "PlaintextV2"] = .string("outbound.\(mode.rawValue)")
+        self.logger = logger
     }
 
     public func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
