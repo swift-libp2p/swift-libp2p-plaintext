@@ -43,6 +43,13 @@ public struct PlaintextUpgrader: SecurityUpgrader {
     }
 
     public func printSelf() {
-        application.logger.notice("Hi I'm the PlaintextV2 security protocol")
+        application.logger.notice("Hi I'm the PlaintextV2 (in)security protocol")
+    }
+}
+
+extension PlaintextUpgrader {
+    public enum Error: Swift.Error, Sendable {
+        case invalidPeerIDExchange
+        case unexpectedRemotePeer
     }
 }
