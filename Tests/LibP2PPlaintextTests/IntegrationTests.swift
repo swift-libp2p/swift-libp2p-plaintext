@@ -55,7 +55,7 @@ struct InternalIntegrationTests {
 
         try await host.startup()
         try await client.startup()
-        
+
         for _ in 0..<numberOfRequests {
             /// Fire off an echo request
             let response = try await client.newRequest(

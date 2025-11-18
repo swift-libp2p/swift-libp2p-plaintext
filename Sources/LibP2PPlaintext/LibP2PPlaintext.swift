@@ -37,7 +37,7 @@ public struct PlaintextUpgrader: SecurityUpgrader {
                 logger: conn.logger,
                 secured: securedPromise,
                 expectedRemotePeerID: conn.expectedRemotePeer
-            ),
+            )
         ]
         return conn.channel.pipeline.addHandlers(handlers, position: position)
     }
