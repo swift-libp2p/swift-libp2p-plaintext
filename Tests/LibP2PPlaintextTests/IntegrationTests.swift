@@ -44,8 +44,6 @@ struct InternalIntegrationTests {
 
         try await host.asyncShutdown()
         try await client.asyncShutdown()
-
-        print("Goodbye 👋")
     }
 
     @Test(arguments: [10, 100, 1_000])
@@ -80,8 +78,6 @@ struct InternalIntegrationTests {
 
         try await host.asyncShutdown()
         try await client.asyncShutdown()
-
-        print("Goodbye 👋")
     }
 
     // Executing a bunch of concurrent requests should cascade into a single connection when appropriate (using the same transport)
@@ -127,8 +123,6 @@ struct InternalIntegrationTests {
 
         try await host.asyncShutdown()
         try await client.asyncShutdown()
-
-        print("Goodbye 👋")
     }
 }
 
@@ -160,8 +154,6 @@ struct ExternalIntegrationTests {
         try await Task.sleep(for: .seconds(1))
 
         try await client.asyncShutdown()
-
-        print("Goodbye 👋")
     }
 
     /// **************************************
@@ -200,8 +192,6 @@ struct ExternalIntegrationTests {
         client.peers.dumpAll()
 
         try await client.asyncShutdown()
-
-        print("Goodbye 👋")
     }
 
     /// **************************************
@@ -255,8 +245,6 @@ struct ExternalIntegrationTests {
         client.peers.dumpAll()
 
         try await client.asyncShutdown()
-
-        print("Goodbye 👋")
     }
 }
 
