@@ -105,7 +105,7 @@ struct InternalIntegrationTests {
 
         let numberOfRequests = 3
 
-        try await withThrowingTaskGroup { group in
+        try await withThrowingTaskGroup(of: Void.self) { group in
             for index in 0..<numberOfRequests {
                 group.addTask {
                     /// Fire off an echo request
