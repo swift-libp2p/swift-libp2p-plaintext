@@ -23,7 +23,7 @@ struct InternalIntegrationTests {
     /// ***************************************
     /// Testing Internal Swift Interoperability
     /// ***************************************
-    @Test(.disabled()) func testInternalInterop() async throws {
+    @Test() func testInternalInterop() async throws {
         let host = try makeLocalEchoHost(port: 10000)
         let client = try makeLocalClient(port: 10001)
 
@@ -40,7 +40,90 @@ struct InternalIntegrationTests {
 
         #expect(response == "Hello Swift LibP2P".data(using: .utf8)!)
 
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(for: .milliseconds(10))
+
+        try await host.asyncShutdown()
+        try await client.asyncShutdown()
+
+        print("Goodbye 👋")
+    }
+
+    @Test(arguments: [10, 100, 1_000])
+    func testInternalInteropMultipleRequests_Sequentially(_ numberOfRequests: Int) async throws {
+        let host = try makeLocalEchoHost(port: 10000)
+        let client = try makeLocalClient(port: 10001)
+
+        try await host.startup()
+        try await client.startup()
+        
+        for _ in 0..<numberOfRequests {
+            /// Fire off an echo request
+            let response = try await client.newRequest(
+                to: host.listenAddresses.first!.encapsulate(proto: .p2p, address: host.peerID.b58String),
+                forProtocol: "/echo/1.0.0",
+                withRequest: "Hello Swift LibP2P".data(using: .utf8)!,
+                withHandlers: .handlers([.newLineDelimited])
+            ).get()
+
+            #expect(response == "Hello Swift LibP2P".data(using: .utf8)!)
+        }
+
+        try await Task.sleep(for: .milliseconds(10))
+
+        let connections = try await host.connectionManager.getTotalConnectionCount().get()
+        let streams = try await host.connectionManager.getTotalStreamCount().get()
+
+        print("Connections: \(connections)")
+        print("Streams: \(streams)")
+        #expect(connections == 1)
+        #expect(streams == numberOfRequests + 2)
+
+        try await host.asyncShutdown()
+        try await client.asyncShutdown()
+
+        print("Goodbye 👋")
+    }
+
+    // Executing a bunch of concurrent requests should cascade into a single connection when appropriate (using the same transport)
+    // Expected flow
+    // -> First request for /ma/peer/echo/1.0.0
+    //  -> No existing connections (immediately cache a pending connection for the ma)
+    // -> While connection is being established
+    // -> Next request comes in for the same ma
+    //  -> Check for existing connections
+    //      -> No available connection, but a pending one!
+    //      -> Return a CapableConnection promise
+    // -> Next request comes in for the same ma
+    //  -> Check for existing connections
+    //      -> Connection is ready / available, reuse it!
+    @Test(.disabled()) func testInternalInteropMultipleRequests_Concurrently() async throws {
+        let host = try makeLocalEchoHost(port: 10000)
+        let client = try makeLocalClient(port: 10001)
+
+        try await host.startup()
+        try await client.startup()
+
+        let numberOfRequests = 3
+
+        try await withThrowingTaskGroup { group in
+            for index in 0..<numberOfRequests {
+                group.addTask {
+                    /// Fire off an echo request
+                    let response = try await client.newRequest(
+                        to: host.listenAddresses.first!.encapsulate(proto: .p2p, address: host.peerID.b58String),
+                        forProtocol: "/echo/1.0.0",
+                        withRequest: "Hello Swift LibP2P[\(index)]".data(using: .utf8)!,
+                        withHandlers: .handlers([.newLineDelimited])
+                    ).get()
+
+                    #expect(response == "Hello Swift LibP2P[\(index)]".data(using: .utf8)!)
+                }
+            }
+
+            try await group.waitForAll()
+        }
+
+        try await Task.sleep(for: .milliseconds(10))
 
         try await host.asyncShutdown()
         try await client.asyncShutdown()
@@ -183,7 +266,7 @@ private func makeLocalEchoHost(port: Int) throws -> Application {
     lib.muxers.use(.mplex)
     lib.servers.use(.tcp(host: "127.0.0.1", port: port))
 
-    lib.logger.logLevel = .debug
+    lib.logger.logLevel = .notice
 
     lib.routes.group("echo", handlers: [.newLineDelimited]) { echo in
         echo.on("1.0.0") { req -> Response<ByteBuffer> in
@@ -207,7 +290,7 @@ private func makeLocalClient(port: Int, peerID: PeerID? = nil) throws -> Applica
     lib.muxers.use(.mplex)
     lib.servers.use(.tcp(host: "127.0.0.1", port: port))
 
-    lib.logger.logLevel = .trace
+    lib.logger.logLevel = .notice
 
     return lib
 }
