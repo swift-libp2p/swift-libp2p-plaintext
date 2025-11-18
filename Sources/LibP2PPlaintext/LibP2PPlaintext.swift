@@ -14,11 +14,6 @@
 
 import LibP2P
 
-public enum PlaintextErrors: Error {
-    case invalidPeerIDExchange
-    case unexpectedRemotePeer
-}
-
 public struct PlaintextUpgrader: SecurityUpgrader {
 
     public static let key: String = "/plaintext/2.0.0"
@@ -36,22 +31,25 @@ public struct PlaintextUpgrader: SecurityUpgrader {
     ) -> EventLoopFuture<Void> {
         // Given a ChannelHandlerContext Configure and Install our HandshakeHandler onto the pipeline
         let handlers: [ChannelHandler & Sendable] = [
-            InboundPlaintextV2DecryptHandler(
+            PlaintextV2HandshakeHandler(
                 peerID: conn.localPeer,
                 mode: conn.mode,
                 logger: conn.logger,
                 secured: securedPromise,
                 expectedRemotePeerID: conn.expectedRemotePeer
-            ),
-            OutboundPlaintextV2EncryptHandler(
-                mode: conn.mode,
-                logger: conn.logger
-            ),
+            )
         ]
         return conn.channel.pipeline.addHandlers(handlers, position: position)
     }
 
     public func printSelf() {
-        application.logger.notice("Hi I'm the PlaintextV2 security protocol")
+        application.logger.notice("Hi I'm the PlaintextV2 (in)security protocol")
+    }
+}
+
+extension PlaintextUpgrader {
+    public enum Error: Swift.Error, Sendable {
+        case invalidPeerIDExchange
+        case unexpectedRemotePeer
     }
 }
