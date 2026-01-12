@@ -18,7 +18,7 @@ import Testing
 
 @testable import LibP2PPlaintext
 
-@Suite("Active Tests", .serialized)
+@Suite("Active Tests", .serialized, .timeLimit(.minutes(5)))
 struct InternalIntegrationTests {
     /// ***************************************
     /// Testing Internal Swift Interoperability
