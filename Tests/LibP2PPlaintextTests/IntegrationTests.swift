@@ -13,7 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 import LibP2P
-import LibP2PMPLEX
+import LibP2PYAMUX
 import Testing
 
 @testable import LibP2PPlaintext
@@ -259,7 +259,7 @@ struct ExternalIntegrationTests {
 private func makeLocalEchoHost(port: Int) throws -> Application {
     let lib = try Application(.testing, peerID: PeerID(.Ed25519))
     lib.security.use(.plaintextV2)
-    lib.muxers.use(.mplex)
+    lib.muxers.use(.yamux)
     lib.servers.use(.tcp(host: "127.0.0.1", port: port))
 
     lib.logger.logLevel = .notice
@@ -283,7 +283,7 @@ private func makeLocalEchoHost(port: Int) throws -> Application {
 private func makeLocalClient(port: Int, peerID: PeerID? = nil) throws -> Application {
     let lib = try Application(.testing, peerID: peerID ?? PeerID(.Ed25519))
     lib.security.use(.plaintextV2)
-    lib.muxers.use(.mplex)
+    lib.muxers.use(.yamux)
     lib.servers.use(.tcp(host: "127.0.0.1", port: port))
 
     lib.logger.logLevel = .notice
