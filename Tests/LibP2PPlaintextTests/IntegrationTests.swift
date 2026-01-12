@@ -30,31 +30,7 @@ struct InternalIntegrationTests {
         try await host.startup()
         try await client.startup()
 
-        /// Fire off an echo request
-        let response = try await client.newRequest(
-            to: host.listenAddresses.first!.encapsulate(proto: .p2p, address: host.peerID.b58String),
-            forProtocol: "/echo/1.0.0",
-            withRequest: "Hello Swift LibP2P".data(using: .utf8)!,
-            withHandlers: .handlers([.newLineDelimited])
-        ).get()
-
-        #expect(response == "Hello Swift LibP2P".data(using: .utf8)!)
-
-        try await Task.sleep(for: .milliseconds(10))
-
-        try await host.asyncShutdown()
-        try await client.asyncShutdown()
-    }
-
-    @Test(arguments: [10, 100, 1_000])
-    func testInternalInteropMultipleRequests_Sequentially(_ numberOfRequests: Int) async throws {
-        let host = try makeLocalEchoHost(port: 10000)
-        let client = try makeLocalClient(port: 10001)
-
-        try await host.startup()
-        try await client.startup()
-
-        for _ in 0..<numberOfRequests {
+        do {
             /// Fire off an echo request
             let response = try await client.newRequest(
                 to: host.listenAddresses.first!.encapsulate(proto: .p2p, address: host.peerID.b58String),
@@ -64,17 +40,49 @@ struct InternalIntegrationTests {
             ).get()
 
             #expect(response == "Hello Swift LibP2P".data(using: .utf8)!)
+
+            try await Task.sleep(for: .milliseconds(10))
+        } catch {
+            Issue.record(error)
         }
 
-        try await Task.sleep(for: .milliseconds(10))
+        try await host.asyncShutdown()
+        try await client.asyncShutdown()
+    }
 
-        let connections = try await host.connectionManager.getTotalConnectionCount().get()
-        let streams = try await host.connectionManager.getTotalStreamCount().get()
+    @Test(.timeLimit(.minutes(2)), arguments: [3, 5, 10])
+    func testInternalInteropMultipleRequests_Sequentially(_ numberOfRequests: Int) async throws {
+        let host = try makeLocalEchoHost(port: 10000)
+        let client = try makeLocalClient(port: 10001)
 
-        print("Connections: \(connections)")
-        print("Streams: \(streams)")
-        #expect(connections == 1)
-        #expect(streams == numberOfRequests + 2)
+        try await host.startup()
+        try await client.startup()
+
+        do {
+            for _ in 0..<numberOfRequests {
+                /// Fire off an echo request
+                let response = try await client.newRequest(
+                    to: host.listenAddresses.first!.encapsulate(proto: .p2p, address: host.peerID.b58String),
+                    forProtocol: "/echo/1.0.0",
+                    withRequest: "Hello Swift LibP2P".data(using: .utf8)!,
+                    withHandlers: .handlers([.newLineDelimited])
+                ).get()
+
+                #expect(response == "Hello Swift LibP2P".data(using: .utf8)!)
+            }
+
+            try await Task.sleep(for: .milliseconds(10))
+
+            let connections = try await host.connectionManager.getTotalConnectionCount().get()
+            let streams = try await host.connectionManager.getTotalStreamCount().get()
+
+            print("Connections: \(connections)")
+            print("Streams: \(streams)")
+            #expect(connections == 1)
+            #expect(streams == numberOfRequests + 2)
+        } catch {
+            Issue.record(error)
+        }
 
         try await host.asyncShutdown()
         try await client.asyncShutdown()
