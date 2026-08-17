@@ -32,10 +32,10 @@ let package = Package(
         // Dependencies declare other packages that this package depends on.
 
         // LibP2P Modules
-        .package(url: "https://github.com/swift-libp2p/swift-libp2p", .upToNextMinor(from: "0.3.1")),
+        .package(url: "https://github.com/swift-libp2p/swift-libp2p", .upToNextMinor(from: "0.3.7")),
 
         // YAMUX for testing
-        .package(url: "https://github.com/swift-libp2p/swift-libp2p-yamux", .upToNextMinor(from: "0.2.1")),
+        .package(url: "https://github.com/swift-libp2p/swift-libp2p-yamux", .upToNextMinor(from: "0.2.3")),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
