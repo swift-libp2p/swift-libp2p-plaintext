@@ -21,7 +21,11 @@
 // For information on using the generated types, please see the documentation:
 //   https://github.com/apple/swift-protobuf/
 
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 import SwiftProtobuf
 
 // If the compiler emits an error on this type, it is because this file
@@ -40,20 +44,20 @@ struct Exchange: Sendable {
   // methods supported on all messages.
 
   var id: Data {
-    get {return _id ?? Data()}
+    get {_id ?? Data()}
     set {_id = newValue}
   }
   /// Returns true if `id` has been explicitly set.
-  var hasID: Bool {return self._id != nil}
+  var hasID: Bool {self._id != nil}
   /// Clears the value of `id`. Subsequent reads from it will return its default value.
   mutating func clearID() {self._id = nil}
 
   var pubkey: Exchange.PublicKey {
-    get {return _pubkey ?? Exchange.PublicKey()}
+    get {_pubkey ?? Exchange.PublicKey()}
     set {_pubkey = newValue}
   }
   /// Returns true if `pubkey` has been explicitly set.
-  var hasPubkey: Bool {return self._pubkey != nil}
+  var hasPubkey: Bool {self._pubkey != nil}
   /// Clears the value of `pubkey`. Subsequent reads from it will return its default value.
   mutating func clearPubkey() {self._pubkey = nil}
 
@@ -77,20 +81,20 @@ struct Exchange: Sendable {
     // methods supported on all messages.
 
     var type: Exchange.KeyType {
-      get {return _type ?? .rsa}
+      get {_type ?? .rsa}
       set {_type = newValue}
     }
     /// Returns true if `type` has been explicitly set.
-    var hasType: Bool {return self._type != nil}
+    var hasType: Bool {self._type != nil}
     /// Clears the value of `type`. Subsequent reads from it will return its default value.
     mutating func clearType() {self._type = nil}
 
     var data: Data {
-      get {return _data ?? Data()}
+      get {_data ?? Data()}
       set {_data = newValue}
     }
     /// Returns true if `data` has been explicitly set.
-    var hasData: Bool {return self._data != nil}
+    var hasData: Bool {self._data != nil}
     /// Clears the value of `data`. Subsequent reads from it will return its default value.
     mutating func clearData() {self._data = nil}
 
