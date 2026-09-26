@@ -1,9 +1,9 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.1
 //===----------------------------------------------------------------------===//
 //
 // This source file is part of the swift-libp2p open source project
 //
-// Copyright (c) 2022-2025 swift-libp2p project authors
+// Copyright (c) 2022-2026 swift-libp2p project authors
 // Licensed under MIT
 //
 // See LICENSE for license information
@@ -32,10 +32,10 @@ let package = Package(
         // Dependencies declare other packages that this package depends on.
 
         // LibP2P Modules
-        .package(url: "https://github.com/swift-libp2p/swift-libp2p", .upToNextMinor(from: "0.3.7")),
+        .package(url: "https://github.com/swift-libp2p/swift-libp2p", .upToNextMinor(from: "0.4.0")),
 
         // YAMUX for testing
-        .package(url: "https://github.com/swift-libp2p/swift-libp2p-yamux", .upToNextMinor(from: "0.3.0")),
+        .package(url: "https://github.com/swift-libp2p/swift-libp2p-yamux", .upToNextMinor(from: "0.3.4")),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
